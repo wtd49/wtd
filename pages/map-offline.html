@@ -1,1 +1,17 @@
-<!doctype html><html><body><h2>Carte Offline</h2></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Carte Offline</title>
+</head>
+<body>
+<a href="../index.html">← Menu</a>
+<h2>🗺️ Carte Offline</h2>
+<pre id="out"></pre>
+
+<script>
+const l=JSON.parse(localStorage.getItem("wtd_fokontany_db")||"[]");
+out.textContent=JSON.stringify(l,null,2);
+</script>
+</body>
+</html>
