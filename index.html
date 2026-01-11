@@ -204,21 +204,10 @@
         return;
       }
 
-      const currentDb = loadKey(KEY_DB);
-      const incomingDb = Array.isArray(obj.data.fokontany) ? obj.data.fokontany : [];
-      const mergedDb = mergeFokontany(currentDb, incomingDb);
-
-      const curUpd = loadKey(KEY_UPD);
-      const incUpd = Array.isArray(obj.data.fokontany_updates) ? obj.data.fokontany_updates : [];
-      const mergedUpd = uniqueStrings(curUpd.concat(incUpd));
-
-      const curTok = loadKey(KEY_TOK);
-      const incTok = Array.isArray(obj.data.toktok) ? obj.data.toktok : [];
-      const mergedTok = uniqueStrings(curTok.concat(incTok));
-
-      const curTrp = loadKey(KEY_TRP);
-      const incTrp = Array.isArray(obj.data.transport_partners) ? obj.data.transport_partners : [];
-      const mergedTrp = mergePartners(curTrp, incTrp);
+      const mergedDb = mergeFokontany(loadKey(KEY_DB), Array.isArray(obj.data.fokontany) ? obj.data.fokontany : []);
+      const mergedUpd = uniqueStrings(loadKey(KEY_UPD).concat(Array.isArray(obj.data.fokontany_updates) ? obj.data.fokontany_updates : []));
+      const mergedTok = uniqueStrings(loadKey(KEY_TOK).concat(Array.isArray(obj.data.toktok) ? obj.data.toktok : []));
+      const mergedTrp = mergePartners(loadKey(KEY_TRP), Array.isArray(obj.data.transport_partners) ? obj.data.transport_partners : []);
 
       saveKey(KEY_DB, mergedDb);
       saveKey(KEY_UPD, mergedUpd);
@@ -246,8 +235,7 @@
         safe.updated_at = new Date().toISOString();
         map.set(id, safe);
       } else {
-        const created = { ...inc };
-        created.id = id;
+        const created = { ...inc, id };
         created.created_at = created.created_at || new Date().toISOString();
         created.updated_at = new Date().toISOString();
         map.set(id, created);
@@ -263,8 +251,7 @@
       const id = String(inc.id).trim();
       if(!id) continue;
       if(map.has(id)){
-        const cur = map.get(id);
-        map.set(id, { ...cur, ...inc, id, updated_at: new Date().toISOString() });
+        map.set(id, { ...map.get(id), ...inc, id, updated_at: new Date().toISOString() });
       } else {
         map.set(id, { ...inc, id, created_at: inc.created_at || new Date().toISOString(), updated_at: new Date().toISOString() });
       }
@@ -302,9 +289,7 @@
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
   }
 
-  function setStatus(txt){
-    document.getElementById("status").textContent = txt;
-  }
+  function setStatus(txt){ document.getElementById("status").textContent = txt; }
 
   setLang(localStorage.getItem("wtd_lang") || "fr");
 </script>
