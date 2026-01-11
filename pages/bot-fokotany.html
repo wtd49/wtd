@@ -1,1 +1,59 @@
-<!doctype html><html><body><h2>Bot Fokontany</h2></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bot Fokontany · Offline</title>
+<style>
+body{font-family:Arial;margin:0;background:#f5f5f5}
+header{background:#024b7a;color:#fff;padding:14px}
+main{padding:14px}
+.card{background:#fff;padding:14px;border-radius:10px;margin-bottom:12px}
+button{background:#024b7a;color:#fff;border:none;padding:10px 14px;border-radius:8px}
+input,select{width:100%;padding:10px;margin-top:6px}
+#log{background:#eee;padding:10px;height:220px;overflow:auto}
+</style>
+</head>
+<body>
+
+<header>
+<a href="../index.html" style="color:white;text-decoration:none">← Menu</a>
+<h2>🤖 Bot Fokontany (Offline)</h2>
+<p>Mises à jour sans modifier le GPS</p>
+</header>
+
+<main>
+<div class="card">
+<label>ID Fokontany</label>
+<input id="fid" placeholder="TANA-001">
+
+<label>Message</label>
+<input id="msg" placeholder="Réseau faible / changement référent / note…">
+
+<button onclick="send()">Envoyer</button>
+</div>
+
+<div class="card">
+<h3>Historique local</h3>
+<div id="log"></div>
+</div>
+</main>
+
+<script>
+const KEY="wtd_fokontany_updates";
+function load(){return JSON.parse(localStorage.getItem(KEY)||"[]")}
+function save(v){localStorage.setItem(KEY,JSON.stringify(v))}
+function render(){
+ const l=load();const d=document.getElementById("log");d.innerHTML="";
+ l.forEach(x=>{const p=document.createElement("div");p.textContent=x;d.appendChild(p)});
+}
+function send(){
+ const id=fid.value.trim();const m=msg.value.trim();
+ if(!id||!m)return alert("ID + message requis");
+ const line=`[${new Date().toLocaleString()}] ${id} | ${m}`;
+ const l=load();l.push(line);save(l);msg.value="";render();
+}
+render();
+</script>
+</body>
+</html>
