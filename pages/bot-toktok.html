@@ -1,1 +1,61 @@
-<!doctype html><html><body><h2>Bot TokTok</h2></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tok-Tok · Offline</title>
+<style>
+body{font-family:Arial;margin:0;background:#f5f5f5}
+header{background:#024b7a;color:#fff;padding:14px}
+main{padding:14px}
+.card{background:#fff;padding:14px;border-radius:10px;margin-bottom:12px}
+button{background:#024b7a;color:#fff;border:none;padding:10px 14px;border-radius:8px}
+input,select{width:100%;padding:10px;margin-top:6px}
+#log{background:#eee;padding:10px;height:220px;overflow:auto}
+</style>
+</head>
+<body>
+
+<header>
+<a href="../index.html" style="color:white;text-decoration:none">← Menu</a>
+<h2>🛺 Tok-Tok Offline</h2>
+<p>Demandes – priorité handicap</p>
+</header>
+
+<main>
+<div class="card">
+<label>Type</label>
+<select id="type">
+<option>Demande</option>
+<option>Disponible</option>
+<option>Problème</option>
+</select>
+
+<label>Message</label>
+<input id="msg" placeholder="Andavamamba → HJRA / fauteuil roulant">
+
+<button onclick="send()">Envoyer</button>
+</div>
+
+<div class="card">
+<h3>Journal Tok-Tok</h3>
+<div id="log"></div>
+</div>
+</main>
+
+<script>
+const KEY="wtd_toktok_log";
+function load(){return JSON.parse(localStorage.getItem(KEY)||"[]")}
+function save(v){localStorage.setItem(KEY,JSON.stringify(v))}
+function render(){
+ const l=load();log.innerHTML="";
+ l.forEach(x=>{const d=document.createElement("div");d.textContent=x;log.appendChild(d)})
+}
+function send(){
+ const line=`[${new Date().toLocaleString()}] ${type.value} | ${msg.value}`;
+ const l=load();l.push(line);save(l);msg.value="";render();
+}
+render();
+</script>
+</body>
+</html>
