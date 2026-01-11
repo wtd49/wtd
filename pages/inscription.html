@@ -1,1 +1,44 @@
-<!doctype html><html><body><h2>Inscription</h2><p>Le zip ALL nécessite les pages complètes. (Erreur interne de packaging)</p></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inscription Fokontany</title>
+<style>
+body{font-family:Arial;margin:0;background:#f5f5f5}
+header{background:#024b7a;color:#fff;padding:14px}
+main{padding:14px}
+.card{background:#fff;padding:14px;border-radius:10px}
+button{background:#024b7a;color:#fff;border:none;padding:10px 14px;border-radius:8px}
+input{width:100%;padding:10px;margin-top:6px}
+</style>
+</head>
+<body>
+
+<header>
+<a href="../index.html" style="color:white;text-decoration:none">← Menu</a>
+<h2>📝 Inscription Fokontany</h2>
+</header>
+
+<main>
+<div class="card">
+<input id="id" placeholder="ID (TANA-001)">
+<input id="nom" placeholder="Nom fokontany">
+<input id="gps" placeholder="GPS (-18.9, 47.5)">
+<input id="tel" placeholder="Téléphone référent">
+
+<button onclick="save()">Enregistrer</button>
+</div>
+</main>
+
+<script>
+const KEY="wtd_fokontany_db";
+function load(){return JSON.parse(localStorage.getItem(KEY)||"[]")}
+function save(){
+ const r={id:id.value,nom:nom.value,gps:gps.value,tel:tel.value};
+ const l=load();l.push(r);localStorage.setItem(KEY,JSON.stringify(l));
+ alert("Enregistré");
+}
+</script>
+</body>
+</html>
