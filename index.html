@@ -1,1 +1,312 @@
-<!doctype html><html><body><h1>WTD OFFLINE V4</h1><p>Menu principal</p><ul><li><a href='pages/inscription.html'>Inscription</a></li><li><a href='pages/bot-fokotany.html'>Bot Fokontany</a></li><li><a href='pages/bot-toktok.html'>Bot Tok-Tok Handicap</a></li><li><a href='pages/map-offline.html'>Carte Offline</a></li><li><a href='pages/transport-accessible.html'>Transport Accessible</a></li></ul></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WTD · Work-Test (Offline)</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:#f5f5f5;color:#222}
+    header{background:#024b7a;color:#fff;padding:16px 18px}
+    header h1{margin:0;font-size:20px}
+    header p{margin:6px 0 0;opacity:.9;font-size:13px}
+    main{max-width:980px;margin:16px auto;padding:0 12px}
+    .card{background:#fff;border-radius:10px;padding:14px;margin:12px 0;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+    a.btn{display:block;text-decoration:none;background:#024b7a;color:#fff;padding:12px;border-radius:8px}
+    a.btn:hover{background:#03629f}
+    .muted{color:#666;font-size:12px}
+    .langbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    button.lang{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:999px;padding:6px 10px;cursor:pointer}
+    button.lang.active{background:rgba(255,255,255,.2)}
+    button.action{border:none;background:#024b7a;color:#fff;border-radius:8px;padding:10px 12px;cursor:pointer}
+    button.action:hover{background:#03629f}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    #status{margin-top:10px}
+    code{background:#f1f1f1;padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+<header>
+  <h1 data-i18n="title">WTD · Work-Test (Offline)</h1>
+  <p data-i18n="subtitle">Base locale — fokontany, tok-tok, exports — sans Internet.</p>
+  <div class="langbar">
+    <button class="lang active" onclick="setLang('fr')" id="b-fr">FR</button>
+    <button class="lang" onclick="setLang('mg')" id="b-mg">MG</button>
+    <button class="lang" onclick="setLang('en')" id="b-en">EN</button>
+    <button class="lang" onclick="setLang('es')" id="b-es">ES</button>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="grid">
+      <a class="btn" href="pages/inscription.html" data-i18n="btn_inscription">📝 Inscription fokontany (offline)</a>
+      <a class="btn" href="pages/bot-fokotany.html" data-i18n="btn_bot_fok">🤖 Bot MAJ fokontany (sans GPS)</a>
+      <a class="btn" href="pages/bot-toktok.html" data-i18n="btn_toktok">🛺 Bot Tok-Tok (transport + handicap)</a>
+      <a class="btn" href="pages/map-offline.html" data-i18n="btn_map">🗺️ Carte OFFLINE (liste + GPS)</a>
+      <a class="btn" href="pages/transport-accessible.html" data-i18n="btn_transport">♿ Transport Accessible (chauffeurs & matching)</a>
+    </div>
+    <p class="muted" data-i18n="note">
+      Astuce : mets ce dossier sur une clé USB. Ouvre <b>index.html</b>. Tout est enregistré sur l’appareil.
+    </p>
+  </div>
+
+  <div class="card">
+    <h3 data-i18n="sync_title">Exporter / Importer (fusion)</h3>
+    <p class="muted" data-i18n="sync_desc">
+      Exporter tout = JSON complet (fokontany + logs + transport). Importer = fusionne sur cet appareil.
+      Règle GPS : si un ID existe déjà, son GPS ne bouge pas.
+    </p>
+
+    <div class="row">
+      <button class="action" onclick="exportAll()" data-i18n="export_all">⬇️ Exporter tout (JSON)</button>
+
+      <label style="display:inline-block">
+        <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importAll(event)">
+        <button class="action" type="button" onclick="document.getElementById('importFile').click()" data-i18n="import_all">⬆️ Importer / Fusionner (JSON)</button>
+      </label>
+    </div>
+
+    <div id="status" class="muted"></div>
+  </div>
+
+  <div class="card">
+    <h3 data-i18n="gps_title">Règle GPS</h3>
+    <p class="muted" data-i18n="gps_desc">
+      Le GPS est fixé à l’inscription. Les bots ne peuvent pas modifier les coordonnées.
+      Si tu changes de point, crée un nouvel ID.
+    </p>
+    <p class="muted">
+      Clés locales :
+      <code>wtd_fokontany_db</code>,
+      <code>wtd_fokontany_updates</code>,
+      <code>wtd_toktok_log</code>,
+      <code>wtd_transport_partners</code>
+    </p>
+  </div>
+
+  <p class="muted" style="text-align:center">© Élan pour Tous · Mini-WTD/WTD · Offline V4</p>
+</main>
+
+<script>
+  const I18N = {
+    fr: {
+      title: "WTD · Work-Test (Offline)",
+      subtitle: "Base locale — fokontany, tok-tok, exports — sans Internet.",
+      btn_inscription: "📝 Inscription fokontany (offline)",
+      btn_bot_fok: "🤖 Bot MAJ fokontany (sans GPS)",
+      btn_toktok: "🛺 Bot Tok-Tok (transport + handicap)",
+      btn_map: "🗺️ Carte OFFLINE (liste + GPS)",
+      btn_transport: "♿ Transport Accessible (chauffeurs & matching)",
+      note: "Astuce : mets ce dossier sur une clé USB. Ouvre <b>index.html</b>. Tout est enregistré sur l’appareil.",
+      sync_title: "Exporter / Importer (fusion)",
+      sync_desc: "Exporter tout = JSON complet (fokontany + logs + transport). Importer = fusionne sur cet appareil. Règle GPS : si un ID existe déjà, son GPS ne bouge pas.",
+      export_all: "⬇️ Exporter tout (JSON)",
+      import_all: "⬆️ Importer / Fusionner (JSON)",
+      gps_title: "Règle GPS",
+      gps_desc: "Le GPS est fixé à l’inscription. Les bots ne peuvent pas modifier les coordonnées. Si tu changes de point, crée un nouvel ID."
+    },
+    mg: {
+      title: "WTD · Work-Test (Offline)",
+      subtitle: "Base eo an-toerana — fokontany, tok-tok, export — tsy mila Internet.",
+      btn_inscription: "📝 Fisoratana fokontany (offline)",
+      btn_bot_fok: "🤖 Bot fanavaozana fokontany (tsy mikasika GPS)",
+      btn_toktok: "🛺 Bot Tok-Tok (fitaterana + fahasembanana)",
+      btn_map: "🗺️ Sarintany OFFLINE (lisitra + GPS)",
+      btn_transport: "♿ Fitaterana azo idirana (mpamily & matching)",
+      note: "Torohevitra : apetraho amin’ny clé USB. Sokafy <b>index.html</b>. Voatahiry ao amin’ilay fitaovana avokoa ny angona.",
+      sync_title: "Export / Import (fampifangaroana)",
+      sync_desc: "Export rehetra = JSON feno (fokontany + logs + transport). Import = mampifangaro eto amin’ity fitaovana ity. Fitsipika GPS: raha efa misy ID, tsy miova ny GPS.",
+      export_all: "⬇️ Export rehetra (JSON)",
+      import_all: "⬆️ Import / Ampifangaro (JSON)",
+      gps_title: "Fitsipika GPS",
+      gps_desc: "Raikitra amin’ny fisoratana ny GPS. Tsy mahazo manova GPS ny bot. Raha miova toerana, mamoròna ID vaovao."
+    },
+    en: {
+      title: "WTD · Work-Test (Offline)",
+      subtitle: "Local base — fokontany, tok-tok mobility, exports — no Internet.",
+      btn_inscription: "📝 Fokontany registration (offline)",
+      btn_bot_fok: "🤖 Fokontany update bot (no GPS edits)",
+      btn_toktok: "🛺 Tok-Tok bot (transport + accessibility)",
+      btn_map: "🗺️ OFFLINE map (list + GPS)",
+      btn_transport: "♿ Accessible transport (drivers & matching)",
+      note: "Tip: put this folder on a USB drive. Open <b>index.html</b>. Everything is stored on the device.",
+      sync_title: "Export / Import (merge)",
+      sync_desc: "Export All creates a full JSON file (fokontany + logs + transport). Import merges into this device. GPS rule: if an ID already exists, its GPS never changes.",
+      export_all: "⬇️ Export All (JSON)",
+      import_all: "⬆️ Import / Merge (JSON)",
+      gps_title: "GPS Rule",
+      gps_desc: "GPS is fixed at registration. Bots cannot change coordinates. If the point changes, create a new ID."
+    },
+    es: {
+      title: "WTD · Work-Test (Sin conexión)",
+      subtitle: "Base local — fokontany, transporte tok-tok, exportaciones — sin Internet.",
+      btn_inscription: "📝 Registro de fokontany (offline)",
+      btn_bot_fok: "🤖 Bot de actualizaciones (sin tocar GPS)",
+      btn_toktok: "🛺 Bot Tok-Tok (transporte + accesibilidad)",
+      btn_map: "🗺️ Mapa OFFLINE (lista + GPS)",
+      btn_transport: "♿ Transporte accesible (conductores y matching)",
+      note: "Consejo: guarda esta carpeta en un USB. Abre <b>index.html</b>. Todo se guarda en el dispositivo.",
+      sync_title: "Exportar / Importar (fusión)",
+      sync_desc: "Exportar todo crea un JSON completo (fokontany + registros + transporte). Importar fusiona en este dispositivo. Regla GPS: si un ID ya existe, su GPS no cambia.",
+      export_all: "⬇️ Exportar todo (JSON)",
+      import_all: "⬆️ Importar / Fusionar (JSON)",
+      gps_title: "Regla GPS",
+      gps_desc: "El GPS se fija al registrarse. Los bots no pueden modificar coordenadas. Si cambia el punto, crea un ID nuevo."
+    }
+  };
+
+  function setLang(lang){
+    localStorage.setItem("wtd_lang", lang);
+    document.querySelectorAll("button.lang").forEach(b=>b.classList.remove("active"));
+    const btn = document.getElementById("b-"+lang);
+    if(btn) btn.classList.add("active");
+    document.querySelectorAll("[data-i18n]").forEach(el=>{
+      const key = el.getAttribute("data-i18n");
+      const txt = (I18N[lang] && I18N[lang][key]) ? I18N[lang][key] : I18N.fr[key];
+      el.innerHTML = txt;
+    });
+  }
+
+  const KEY_DB  = "wtd_fokontany_db";
+  const KEY_UPD = "wtd_fokontany_updates";
+  const KEY_TOK = "wtd_toktok_log";
+  const KEY_TRP = "wtd_transport_partners";
+
+  function loadKey(k){ return JSON.parse(localStorage.getItem(k) || "[]"); }
+  function saveKey(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
+
+  function exportAll(){
+    const payload = {
+      schema: "wtd-offline-export-v4",
+      exported_at: new Date().toISOString(),
+      data: {
+        fokontany: loadKey(KEY_DB),
+        fokontany_updates: loadKey(KEY_UPD),
+        toktok: loadKey(KEY_TOK),
+        transport_partners: loadKey(KEY_TRP)
+      }
+    };
+    downloadText(`wtd-export-all-${dateStamp()}.json`, JSON.stringify(payload, null, 2), "application/json");
+    setStatus("✅ Export JSON créé.");
+  }
+
+  async function importAll(ev){
+    try{
+      const file = ev.target.files?.[0];
+      if(!file) return;
+
+      const text = await file.text();
+      const obj = JSON.parse(text);
+
+      if(!obj || !obj.data){
+        setStatus("❌ Fichier invalide (pas de champ data).");
+        return;
+      }
+
+      const currentDb = loadKey(KEY_DB);
+      const incomingDb = Array.isArray(obj.data.fokontany) ? obj.data.fokontany : [];
+      const mergedDb = mergeFokontany(currentDb, incomingDb);
+
+      const curUpd = loadKey(KEY_UPD);
+      const incUpd = Array.isArray(obj.data.fokontany_updates) ? obj.data.fokontany_updates : [];
+      const mergedUpd = uniqueStrings(curUpd.concat(incUpd));
+
+      const curTok = loadKey(KEY_TOK);
+      const incTok = Array.isArray(obj.data.toktok) ? obj.data.toktok : [];
+      const mergedTok = uniqueStrings(curTok.concat(incTok));
+
+      const curTrp = loadKey(KEY_TRP);
+      const incTrp = Array.isArray(obj.data.transport_partners) ? obj.data.transport_partners : [];
+      const mergedTrp = mergePartners(curTrp, incTrp);
+
+      saveKey(KEY_DB, mergedDb);
+      saveKey(KEY_UPD, mergedUpd);
+      saveKey(KEY_TOK, mergedTok);
+      saveKey(KEY_TRP, mergedTrp);
+
+      setStatus(`✅ Import OK. Fokontany: ${mergedDb.length} | Updates: ${mergedUpd.length} | TokTok: ${mergedTok.length} | Transport: ${mergedTrp.length}`);
+    } catch (e){
+      setStatus("❌ Import échoué: " + (e?.message || e));
+    } finally {
+      ev.target.value = "";
+    }
+  }
+
+  function mergeFokontany(current, incoming){
+    const map = new Map(current.map(x => [x.id, x]));
+    for (const inc of incoming){
+      if(!inc || !inc.id) continue;
+      const id = String(inc.id).trim();
+      if(!id) continue;
+
+      if(map.has(id)){
+        const cur = map.get(id);
+        const safe = { ...cur, ...inc, gps: cur.gps };
+        safe.updated_at = new Date().toISOString();
+        map.set(id, safe);
+      } else {
+        const created = { ...inc };
+        created.id = id;
+        created.created_at = created.created_at || new Date().toISOString();
+        created.updated_at = new Date().toISOString();
+        map.set(id, created);
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  function mergePartners(current, incoming){
+    const map = new Map(current.map(x => [x.id, x]));
+    for (const inc of incoming){
+      if(!inc || !inc.id) continue;
+      const id = String(inc.id).trim();
+      if(!id) continue;
+      if(map.has(id)){
+        const cur = map.get(id);
+        map.set(id, { ...cur, ...inc, id, updated_at: new Date().toISOString() });
+      } else {
+        map.set(id, { ...inc, id, created_at: inc.created_at || new Date().toISOString(), updated_at: new Date().toISOString() });
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  function uniqueStrings(arr){
+    const set = new Set();
+    const out = [];
+    for (const x of arr){
+      const s = String(x);
+      if(!set.has(s)){
+        set.add(s);
+        out.push(s);
+      }
+    }
+    return out;
+  }
+
+  function downloadText(filename, text, mime="text/plain;charset=utf-8"){
+    const blob = new Blob([text], {type:mime});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function dateStamp(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+  }
+
+  function setStatus(txt){
+    document.getElementById("status").textContent = txt;
+  }
+
+  setLang(localStorage.getItem("wtd_lang") || "fr");
+</script>
+</body>
+</html>
