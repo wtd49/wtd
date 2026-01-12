@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Salle Incident · Dialogue opérateurs</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <style>
+    .split{display:grid;grid-template-columns:1fr 2fr;gap:12px}
+    @media (max-width: 900px){ .split{grid-template-columns:1fr} }
+    .list{max-height:65vh;overflow:auto}
+    .msg{padding:10px;border-bottom:1px solid #eee}
+    .me{background:#eef5ff;border-radius:10px}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef5ff;color:#024b7a;font-weight:800;font-size:12px}
+    select,input,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid #ddd}
+    textarea{min-height:70px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="../index.html">← Menu</a>
+  <div style="margin-top:6px;font-weight:900">🗨️ Salle Incident — Dialogue opérateurs (1 appareil)</div>
+  <div class="muted" style="color:#dfefff">Offline. Les opérateurs se relaient : on choisit “qui parle”. GPS jamais modifié.</div>
+</header>
+
+<main>
+  <div class="split">
+    <div class="card">
+      <div style="font-weight:900">👤 Opérateur (qui parle)</div>
+      <select id="who">
+        <option value="telma">TELMA</option>
+        <option value="orange">Orange</option>
+        <option value="airtel">Airtel</option>
+        <option value="wtd">WTD (Système)</option>
+      </select>
+
+      <div style="margin-top:12px;font-weight:900">🧾 Incidents (flux)</div>
+      <input id="q" type="text" placeholder="Rechercher incident (telma, route, ville...)">
+
+      <div class="muted" style="margin-top:8px">
+        Source: <code>assets/data/flux.json</code>
+      </div>
+
+      <div id="incList" class="list" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-weight:900">🏷️ Salle</div>
+          <div class="muted">Incident: <span id="incLabel">Aucun</span></div>
+          <div class="muted">GPS (lecture seule): <span id="gpsLabel">—</span></div>
+        </div>
+        <div class="pill" id="globalStatus">Statut: —</div>
+      </div>
+
+      <div style="margin-top:10px" class="actions">
+        <button class="action" onclick="setAction('ACK')">ACK</button>
+        <button class="action" onclick="setAction('IN_PROGRESS')">EN_COURS</button>
+        <button class="action" onclick="setAction('RESOLVED')">RÉSOLU</button>
+        <button class="action" onclick="setAction('REJECTED')">FAUX</button>
+      </div>
+
+      <div style="margin-top:10px">
+        <textarea id="text" placeholder="Message (ex: @orange besoin info, ticket #...)"></textarea>
+        <div class="row" style="margin-top:10px">
+          <button class="action" onclick="sendMsg()">Envoyer</button>
+          <button class="action" onclick="exportRoom()">Exporter salle (JSON)</button>
+          <label style="display:inline-block">
+            <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importRoom(event)">
+            <button class="action" type="button" onclick="document.getElementById('importFile').click()">Importer / Fusionner</button>
+          </label>
+        </div>
+      </div>
+
+      <div id="timeline" class="list" style="margin-top:12px"></div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+  import { esc } from "../assets/js/app.js";
+
+  const KEY_WHO = "wtd_operator_identity";
+  const KEY_THR = "wtd_operator_threads";
+  const KEY_ACT = "wtd_operator_actions";
+
+  let incidents = [];
+  let currentIncident = null;
+
+  const who = document.getElementById("who");
+  const q = document.getElementById("q");
+  const incList = document.getElementById("incList");
+  const timeline = document.getElementById("timeline");
+  const incLabel = document.getElementById("incLabel");
+  const gpsLabel = document.getElementById("gpsLabel");
+  const globalStatus = document.getElementById("globalStatus");
+
+  function load(key, fallback){
+    try{ return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
+    catch{ return fallback; }
+  }
+  function save(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+
+  function uid(){
+    return (crypto?.randomUUID?.() || (Date.now()+"-"+Math.random().toString(16).slice(2)));
+  }
+
+  function incidentId(it){
+    if(it.id) return String(it.id);
+    const base = `${it.ts||""}|${it.gps||""}|${it.title||""}`.trim();
+    let h=0; for(let i=0;i<base.length;i++) h=(h*31 + base.charCodeAt(i))>>>0;
+    return "INC-" + h.toString(16).toUpperCase();
+  }
+
+  async function loadIncidents(){
+    const res = await fetch("../assets/data/flux.json", { cache:"no-store" });
+    const data = await res.json();
+    const items = Array.isArray(data.items) ? data.items : [];
+    incidents = items.map(it => ({...it, _id: incidentId(it)}));
+  }
+
+  function renderIncidents(){
+    const s = q.value.toLowerCase().trim();
+    const list = incidents.filter(it => JSON.stringify(it).toLowerCase().includes(s));
+    incList.innerHTML = list.length ? "" : `<div class="muted">Aucun incident.</div>`;
+    for(const it of list){
+      const div = document.createElement("div");
+      div.className = "msg";
+      div.style.cursor = "pointer";
+      div.innerHTML = `
+        <div style="font-weight:900">${esc(it.title || "Incident")}</div>
+        <div class="muted">${esc(it.ts || "")} · ${esc(it.operator || "")} · ${esc(it.level || "")}</div>
+        <div class="muted">ID: ${esc(it._id)}</div>
+      `;
+      div.onclick = ()=> openIncident(it._id);
+      incList.appendChild(div);
+    }
+  }
+
+  function openIncident(id){
+    currentIncident = incidents.find(x => x._id === id) || null;
+    incLabel.textContent = currentIncident ? currentIncident._id : "Aucun";
+    gpsLabel.textContent = currentIncident?.gps || "—";
+    renderTimeline();
+  }
+
+  function getRoomMessages(incident_id){
+    return load(KEY_THR, []).filter(m => m.incident_id === incident_id);
+  }
+  function getRoomActions(incident_id){
+    return load(KEY_ACT, []).filter(a => a.incident_id === incident_id);
+  }
+
+  function computeGlobalStatus(actions){
+    const lastByOp = new Map();
+    for(const a of actions){
+      const k = a.operator;
+      const prev = lastByOp.get(k);
+      if(!prev || (a.ts > prev.ts)) lastByOp.set(k, a);
+    }
+    const vals = Array.from(lastByOp.values()).map(x=>x.action);
+    if(!vals.length) return "—";
+    if(vals.every(v=>v==="RESOLVED")) return "RÉSOLU";
+    if(vals.some(v=>v==="IN_PROGRESS")) return "EN_COURS";
+    if(vals.some(v=>v==="ACK")) return "ACK";
+    if(vals.some(v=>v==="REJECTED")) return "FAUX";
+    return "—";
+  }
+
+  function renderTimeline(){
+    if(!currentIncident){
+      timeline.innerHTML = `<div class="muted">Choisis un incident à gauche.</div>`;
+      globalStatus.textContent = "Statut: —";
+      return;
+    }
+
+    const msgs = getRoomMessages(currentIncident._id);
+    const acts = getRoomActions(currentIncident._id);
+
+    const all = [
+      ...msgs.map(x=>({kind:"msg", ts:x.ts, data:x})),
+      ...acts.map(x=>({kind:"act", ts:x.ts, data:x}))
+    ].sort((a,b)=> (a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0));
+
+    const st = computeGlobalStatus(acts);
+    globalStatus.textContent = "Statut: " + st;
+
+    timeline.innerHTML = all.length ? "" : `<div class="muted">Pas encore de dialogue. Envoie un message ou une action.</div>`;
+
+    const me = who.value;
+
+    for(const item of all){
+      const div = document.createElement("div");
+      div.className = "msg";
+
+      if(item.kind === "act"){
+        const a = item.data;
+        div.innerHTML = `
+          <div style="font-weight:900">⚙️ ${esc(a.operator)} → ${esc(a.action)}</div>
+          <div class="muted">${esc(a.ts)}</div>
+          ${a.comment ? `<div style="margin-top:6px">${esc(a.comment)}</div>` : ""}
+        `;
+      } else {
+        const m = item.data;
+        const isMe = (m.from_operator === me);
+        if(isMe) div.classList.add("me");
+        div.innerHTML = `
+          <div style="font-weight:900">💬 ${esc(m.from_operator)}</div>
+          <div class="muted">${esc(m.ts)}</div>
+          <div style="margin-top:6px">${esc(m.text)}</div>
+        `;
+      }
+
+      timeline.appendChild(div);
+    }
+  }
+
+  window.sendMsg = function(){
+    if(!currentIncident) return alert("Choisis un incident d'abord.");
+    const text = document.getElementById("text").value.trim();
+    if(!text) return;
+
+    const thread = load(KEY_THR, []);
+    thread.push({
+      incident_id: currentIncident._id,
+      msg_id: uid(),
+      from_operator: who.value,
+      type: "message",
+      text,
+      ts: new Date().toISOString()
+    });
+    save(KEY_THR, thread);
+    document.getElementById("text").value = "";
+    renderTimeline();
+  };
+
+  window.setAction = function(action){
+    if(!currentIncident) return alert("Choisis un incident d'abord.");
+    const comment = document.getElementById("text").value.trim();
+
+    const actions = load(KEY_ACT, []);
+    actions.push({
+      incident_id: currentIncident._id,
+      operator: who.value,
+      action,
+      comment: comment || "",
+      ts: new Date().toISOString()
+    });
+    save(KEY_ACT, actions);
+    document.getElementById("text").value = "";
+    renderTimeline();
+  };
+
+  window.exportRoom = function(){
+    if(!currentIncident) return alert("Choisis un incident d'abord.");
+    const payload = {
+      schema: "wtd-room-export-v1",
+      incident_id: currentIncident._id,
+      exported_at: new Date().toISOString(),
+      threads: getRoomMessages(currentIncident._id),
+      actions: getRoomActions(currentIncident._id)
+    };
+    const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `wtd-room-${currentIncident._id}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  window.importRoom = async function(ev){
+    const file = ev.target.files?.[0];
+    if(!file) return;
+    try{
+      const obj = JSON.parse(await file.text());
+      if(obj.schema !== "wtd-room-export-v1") throw new Error("Mauvais fichier.");
+      if(!obj.incident_id) throw new Error("incident_id manquant.");
+
+      const thr = load(KEY_THR, []);
+      const seen = new Set(thr.map(x=>x.msg_id));
+      for(const m of (obj.threads||[])){
+        if(m?.msg_id && !seen.has(m.msg_id)){
+          thr.push(m);
+          seen.add(m.msg_id);
+        }
+      }
+      save(KEY_THR, thr);
+
+      const act = load(KEY_ACT, []);
+      for(const a of (obj.actions||[])){
+        if(a?.incident_id) act.push(a);
+      }
+      save(KEY_ACT, act);
+
+      await loadIncidents();
+      renderIncidents();
+      openIncident(obj.incident_id);
+
+      alert("Import OK ✅");
+    } catch(e){
+      alert("Import KO: " + (e?.message || e));
+    } finally {
+      ev.target.value = "";
+    }
+  };
+
+  who.value = localStorage.getItem(KEY_WHO) || "telma";
+  who.addEventListener("change", ()=> localStorage.setItem(KEY_WHO, who.value));
+  q.addEventListener("input", renderIncidents);
+
+  await loadIncidents();
+  renderIncidents();
+</script>
+</body>
+</html>

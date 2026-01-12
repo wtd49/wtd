@@ -1,0 +1,24 @@
+{
+  "schema": "wtd-flux-v1",
+  "updated_at": "2026-01-12T04:24:55Z",
+  "items": [
+    {
+      "ts": "2026-01-12T04:24:55Z",
+      "type": "reseau",
+      "title": "TELMA · Incident",
+      "msg": "Coupure signal détectée (exemple).",
+      "level": "warning",
+      "gps": "-18.8792,47.5079",
+      "ref": "TANA-EX"
+    },
+    {
+      "ts": "2026-01-12T04:24:55Z",
+      "type": "tourisme",
+      "title": "Info route",
+      "msg": "Route RN2 ralentissement (exemple).",
+      "level": "info",
+      "gps": "-18.1492,49.4023",
+      "ref": "TOAM-EX"
+    }
+  ]
+}

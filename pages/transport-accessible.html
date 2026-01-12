@@ -1,12 +1,1 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<title>Transport Accessible</title>
-</head>
-<body>
-<a href="../index.html">← Menu</a>
-<h2>♿ Transport Accessible</h2>
-<p>Base chauffeurs / partenaires (offline)</p>
-</body>
-</html>
+<!doctype html><html><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><link rel='stylesheet' href='../assets/css/main.css'><title>Transport</title></head><body><header><a href='../index.html'>← Menu</a> <b>Transport Accessible</b></header><main class='card'><input id='id' placeholder='ID'><input id='name' placeholder='Nom'><input id='phone' placeholder='Tel'><div class='row'><button class='action' onclick='saveP()'>Enregistrer</button></div><pre id='list'></pre></main><script type='module'>import {load,save} from '../assets/js/app.js';const KEY='wtd_transport_partners';function render(){document.getElementById('list').textContent=JSON.stringify(load(KEY,[]),null,2);}window.saveP=()=>{const id=document.getElementById('id').value.trim();const name=document.getElementById('name').value.trim();if(!id||!name)return alert('ID+Nom');const phone=document.getElementById('phone').value.trim();const l=load(KEY,[]);const i=l.findIndex(x=>x.id===id);const r={id,name,phone,updated_at:new Date().toISOString()};if(i>=0)l[i]={...l[i],...r};else l.push({...r,created_at:new Date().toISOString()});save(KEY,l);render();};render();</script></body></html>

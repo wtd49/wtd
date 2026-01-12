@@ -1,0 +1,121 @@
+{
+  "schema": "wtd-villes-madagascar-v1",
+  "count": 23,
+  "cities": [
+    {
+      "name": "Antananarivo",
+      "lat": -18.8792,
+      "lng": 47.5079
+    },
+    {
+      "name": "Toamasina",
+      "lat": -18.1492,
+      "lng": 49.4023
+    },
+    {
+      "name": "Antsirabe",
+      "lat": -19.8659,
+      "lng": 47.0333
+    },
+    {
+      "name": "Mahajanga",
+      "lat": -15.7167,
+      "lng": 46.3167
+    },
+    {
+      "name": "Fianarantsoa",
+      "lat": -21.4527,
+      "lng": 47.0857
+    },
+    {
+      "name": "Toliara",
+      "lat": -23.35,
+      "lng": 43.6667
+    },
+    {
+      "name": "Antsiranana",
+      "lat": -12.2787,
+      "lng": 49.2917
+    },
+    {
+      "name": "Morondava",
+      "lat": -20.2833,
+      "lng": 44.2833
+    },
+    {
+      "name": "Manakara",
+      "lat": -22.1486,
+      "lng": 48.0208
+    },
+    {
+      "name": "Sambava",
+      "lat": -14.2667,
+      "lng": 50.1667
+    },
+    {
+      "name": "Nosy Be (Hell-Ville)",
+      "lat": -13.4,
+      "lng": 48.2667
+    },
+    {
+      "name": "Fort-Dauphin (Taolagnaro)",
+      "lat": -25.0167,
+      "lng": 46.9833
+    },
+    {
+      "name": "Ihosy",
+      "lat": -22.4,
+      "lng": 46.1167
+    },
+    {
+      "name": "Moramanga",
+      "lat": -18.95,
+      "lng": 48.2333
+    },
+    {
+      "name": "Ambositra",
+      "lat": -20.5333,
+      "lng": 47.25
+    },
+    {
+      "name": "Maroantsetra",
+      "lat": -15.4333,
+      "lng": 49.7333
+    },
+    {
+      "name": "Antalaha",
+      "lat": -14.9,
+      "lng": 50.2667
+    },
+    {
+      "name": "Mananjary",
+      "lat": -21.2167,
+      "lng": 48.3333
+    },
+    {
+      "name": "Tsiroanomandidy",
+      "lat": -18.7667,
+      "lng": 46.0333
+    },
+    {
+      "name": "Maintirano",
+      "lat": -18.05,
+      "lng": 44.0333
+    },
+    {
+      "name": "Fenoarivo Atsinanana",
+      "lat": -17.3833,
+      "lng": 49.4167
+    },
+    {
+      "name": "Vatomandry",
+      "lat": -19.3333,
+      "lng": 48.9833
+    },
+    {
+      "name": "Vohémar",
+      "lat": -13.3667,
+      "lng": 50.0
+    }
+  ]
+}

@@ -1,17 +1,1 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<title>Carte Offline</title>
-</head>
-<body>
-<a href="../index.html">← Menu</a>
-<h2>🗺️ Carte Offline</h2>
-<pre id="out"></pre>
-
-<script>
-const l=JSON.parse(localStorage.getItem("wtd_fokontany_db")||"[]");
-out.textContent=JSON.stringify(l,null,2);
-</script>
-</body>
-</html>
+<!doctype html><html><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><link rel='stylesheet' href='../assets/css/main.css'><title>Carte OFFLINE</title></head><body><header><a href='../index.html'>← Menu</a> <b>Carte OFFLINE</b></header><main><div class='card'><input id='q' placeholder='Recherche' style='width:100%;padding:10px;border-radius:10px;border:1px solid #ddd'><div id='count' class='muted' style='margin-top:8px'></div></div><div class='card' id='rows'></div></main><script type='module'>import {load,esc} from '../assets/js/app.js';const KEY='wtd_fokontany_db';const q=document.getElementById('q');const rows=document.getElementById('rows');function render(){const s=q.value.toLowerCase().trim();const list=load(KEY,[]).filter(r=>`${r.id} ${r.nom} ${r.reseau} ${r.statut}`.toLowerCase().includes(s));document.getElementById('count').textContent=`Résultats: ${list.length}`;rows.innerHTML='';if(!list.length){rows.innerHTML='<div class="muted">Aucun point. Va sur Inscription.</div>';return;}for(const r of list){const d=document.createElement('div');d.style.padding='10px';d.style.borderBottom='1px solid #eee';d.innerHTML=`<b>${esc(r.nom||r.id)}</b><div class='muted'>GPS: ${esc(r.gps||'')}</div><div class='muted'>Réseau: ${esc(r.reseau||'')} | Statut: ${esc(r.statut||'')}</div>`;rows.appendChild(d);} }q.addEventListener('input',render);render();</script></body></html>

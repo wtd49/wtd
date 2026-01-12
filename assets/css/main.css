@@ -1,0 +1,42 @@
+:root {
+  --primary: #024b7a;
+  --bg: #f5f5f5;
+  --card: #ffffff;
+  --text: #222;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  background: var(--primary);
+  color: white;
+  padding: 1rem;
+}
+
+main {
+  max-width: 960px;
+  margin: auto;
+  padding: 1rem;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+}
+
+button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: .6rem 1rem;
+  cursor: pointer;
+}
