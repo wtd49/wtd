@@ -6,16 +6,17 @@
   <title>Google Maps · WTD Madagascar</title>
   <link rel="stylesheet" href="../assets/css/main.css">
   <style>
-    #map {
+    #map{
       height: calc(100vh - 140px);
       width: 100%;
       border-radius: 12px;
       overflow: hidden;
+      background: #f2f2f2;
     }
-    .toolbar {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
     }
   </style>
 </head>
@@ -34,15 +35,9 @@
 <main>
   <div class="card">
     <div class="toolbar">
-      <button class="action" onclick="toggleCities()" id="btnCities">
-        Afficher les villes
-      </button>
-      <button class="action" onclick="togglePoints()" id="btnPoints">
-        Masquer les points WTD
-      </button>
-      <button class="action" onclick="fitAll()">
-        Zoom sur tout
-      </button>
+      <button class="action" onclick="toggleCities()" id="btnCities">Afficher les villes</button>
+      <button class="action" onclick="togglePoints()" id="btnPoints">Masquer les points WTD</button>
+      <button class="action" onclick="fitAll()">Zoom sur tout</button>
     </div>
   </div>
 
@@ -63,13 +58,16 @@
   let citiesVisible = false;
   let pointsVisible = true;
 
-  function gmapLink(gps) {
+  const msgEl = document.getElementById("msg");
+  const setMsg = (t) => { if (msgEl) msgEl.textContent = t || ""; };
+
+  function gmapLink(gps){
     const s = (gps || "").replace(/\s+/g, "").trim();
     if (!s.includes(",")) return "https://www.google.com/maps";
     return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(s);
   }
 
-  function mkInfoPoint(p) {
+  function mkInfoPoint(p){
     return `
       <div style="max-width:280px">
         <div style="font-weight:800;margin-bottom:6px">${esc(p.nom || p.id || "Point")}</div>
@@ -86,7 +84,7 @@
     `;
   }
 
-  function mkInfoCity(c) {
+  function mkInfoCity(c){
     return `
       <div style="max-width:240px">
         <div style="font-weight:800;margin-bottom:6px">${esc(c.name)}</div>
@@ -96,24 +94,24 @@
     `;
   }
 
-  async function loadCities() {
+  async function loadCities(){
     const res = await fetch("../assets/data/villes-madagascar.json", { cache: "no-store" });
     const data = await res.json();
     return Array.isArray(data.cities) ? data.cities : [];
   }
 
-  function clear(list) {
+  function clear(list){
     for (const m of list) m.setMap(null);
     list.length = 0;
   }
 
-  function addPoints() {
+  function addPoints(){
     clear(pointMarkers);
     const pts = load(KEY_DB, [])
       .map(p => ({ ...p, ll: parseGps(p.gps) }))
       .filter(p => p.ll);
 
-    for (const p of pts) {
+    for (const p of pts){
       const m = new google.maps.Marker({
         position: p.ll,
         map: pointsVisible ? map : null,
@@ -127,10 +125,11 @@
     }
   }
 
-  async function addCities() {
+  async function addCities(){
     clear(cityMarkers);
     const cs = await loadCities();
-    for (const c of cs) {
+
+    for (const c of cs){
       const m = new google.maps.Marker({
         position: { lat: c.lat, lng: c.lng },
         map: citiesVisible ? map : null,
@@ -144,13 +143,14 @@
     }
   }
 
-  function boundsAll() {
+  function boundsAll(){
     const b = new google.maps.LatLngBounds();
     for (const m of pointMarkers) if (m.getMap()) b.extend(m.getPosition());
     for (const m of cityMarkers) if (m.getMap()) b.extend(m.getPosition());
     return b;
   }
 
+  // Boutons
   window.toggleCities = async () => {
     citiesVisible = !citiesVisible;
     document.getElementById("btnCities").textContent =
@@ -171,10 +171,16 @@
   window.fitAll = () => {
     const b = boundsAll();
     if (!b.isEmpty()) map.fitBounds(b);
-    else document.getElementById("msg").textContent = "Aucun marqueur visible.";
+    else setMsg("Aucun marqueur visible.");
   };
 
+  // Callback Google Maps
   window.initMap = () => {
+    if (!window.google || !google.maps){
+      setMsg("Google Maps API n’est pas chargée (clé/API/billing/referrer). Ouvre F12 → Console.");
+      return;
+    }
+
     const center = { lat: -18.8792, lng: 47.5079 };
     map = new google.maps.Map(document.getElementById("map"), {
       zoom: 6,
@@ -182,22 +188,29 @@
       mapTypeId: "roadmap",
       gestureHandling: "greedy"
     });
-    info = new google.maps.InfoWindow();
-    addPoints();
-    document.getElementById("msg").textContent =
-      "Clique “Afficher les villes” pour charger la couche Villes de Madagascar.";
 
-    if (pointMarkers.length) {
+    info = new google.maps.InfoWindow();
+
+    addPoints();
+    setMsg("Clique “Afficher les villes” pour charger la couche Villes de Madagascar.");
+
+    if (pointMarkers.length){
       const b = new google.maps.LatLngBounds();
       for (const m of pointMarkers) b.extend(m.getPosition());
       map.fitBounds(b);
     }
   };
+
+  // Si l’API ne charge jamais, on affiche un message au bout de 4s
+  setTimeout(() => {
+    if (!window.google || !window.google.maps){
+      setMsg("Google Maps ne s’est pas chargé. Vérifie : API activée + billing + referrers autorisés. (F12 → Console)");
+    }
+  }, 4000);
 </script>
 
-<!-- ⚠️ Remplace TA_CLE_API -->
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=TA_TOUCHE_CLE_ICI&callback=initMap"></script>
+<!-- ✅ Remplace TA_CLE_API par ta vraie clé (ne la poste pas ici) -->
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=TA_CLE_API&callback=initMap"></script>
 
 </body>
 </html>
-
