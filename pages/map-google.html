@@ -7,10 +7,15 @@
   <link rel="stylesheet" href="../assets/css/main.css">
   <style>
     #map {
-      height: 500px;
+      height: calc(100vh - 140px);
       width: 100%;
       border-radius: 12px;
       overflow: hidden;
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
     }
   </style>
 </head>
@@ -19,29 +24,186 @@
 <header>
   <a href="../index.html">← Menu</a>
   <div style="margin-top:6px;font-weight:800">
-    🗺️ Google Maps (test simple)
+    🗺️ Google Maps (réaliste) + Villes de Madagascar
   </div>
   <div class="muted" style="color:#dfefff">
-    Internet requis. Carte de test pour vérifier la clé Google.
+    Internet requis. Carte Google Maps officielle.
   </div>
 </header>
 
 <main>
   <div class="card">
+    <div class="toolbar">
+      <button class="action" onclick="toggleCities()" id="btnCities">Afficher les villes</button>
+      <button class="action" onclick="togglePoints()" id="btnPoints">Masquer les points WTD</button>
+      <button class="action" onclick="fitAll()">Zoom sur tout</button>
+    </div>
+  </div>
+
+  <div class="card">
     <div id="map"></div>
+    <div id="msg" class="muted" style="margin-top:10px"></div>
   </div>
 </main>
 
-<script>
-  function initMap() {
-    const center = { lat: -18.8792, lng: 47.5079 };
-    new google.maps.Map(document.getElementById("map"), {
-      zoom: 6,
-      center
-    });
+<script type="module">
+  import { load, parseGps, esc } from "../assets/js/app.js";
+
+  const KEY_DB = "wtd_fokontany_db";
+  let map, info;
+  let cityMarkers = [];
+  let pointMarkers = [];
+  let citiesVisible = false;
+  let pointsVisible = true;
+
+  const msgEl = document.getElementById("msg");
+  const setMsg = (t) => { if (msgEl) msgEl.textContent = t || ""; };
+
+  function gmapLink(gps){
+    const s = (gps || "").replace(/\s+/g, "").trim();
+    if (!s.includes(",")) return "https://www.google.com/maps";
+    return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(s);
   }
+
+  function mkInfoPoint(p){
+    return `
+      <div style="max-width:280px">
+        <div style="font-weight:800;margin-bottom:6px">${esc(p.nom || p.id || "Point")}</div>
+        <div><b>ID:</b> ${esc(p.id || "")}</div>
+        <div><b>Réseau:</b> ${esc(p.reseau || "")}</div>
+        <div><b>Statut:</b> ${esc(p.statut || "")}</div>
+        <div style="margin-top:8px"><b>GPS:</b> ${esc(p.gps || "")}</div>
+        <div style="margin-top:10px">
+          <a target="_blank" rel="noopener" href="${gmapLink(p.gps || "")}">
+            Ouvrir dans Google Maps
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
+  function mkInfoCity(c){
+    return `
+      <div style="max-width:240px">
+        <div style="font-weight:800;margin-bottom:6px">${esc(c.name)}</div>
+        <div class="muted">Ville de Madagascar</div>
+        <div style="margin-top:8px"><b>GPS:</b> ${c.lat}, ${c.lng}</div>
+      </div>
+    `;
+  }
+
+  async function loadCities(){
+    const res = await fetch("../assets/data/villes-madagascar.json", { cache: "no-store" });
+    const data = await res.json();
+    return Array.isArray(data.cities) ? data.cities : [];
+  }
+
+  function clear(list){
+    for (const m of list) m.setMap(null);
+    list.length = 0;
+  }
+
+  function addPoints(){
+    clear(pointMarkers);
+    const pts = load(KEY_DB, [])
+      .map(p => ({ ...p, ll: parseGps(p.gps) }))
+      .filter(p => p.ll);
+
+    for (const p of pts){
+      const m = new google.maps.Marker({
+        position: p.ll,
+        map: pointsVisible ? map : null,
+        title: p.nom || p.id || "Point"
+      });
+      m.addListener("click", () => {
+        info.setContent(mkInfoPoint(p));
+        info.open(map, m);
+      });
+      pointMarkers.push(m);
+    }
+  }
+
+  async function addCities(){
+    clear(cityMarkers);
+    const cs = await loadCities();
+
+    for (const c of cs){
+      const m = new google.maps.Marker({
+        position: { lat: c.lat, lng: c.lng },
+        map: citiesVisible ? map : null,
+        title: c.name
+      });
+      m.addListener("click", () => {
+        info.setContent(mkInfoCity(c));
+        info.open(map, m);
+      });
+      cityMarkers.push(m);
+    }
+  }
+
+  function boundsAll(){
+    const b = new google.maps.LatLngBounds();
+    for (const m of pointMarkers) if (m.getMap()) b.extend(m.getPosition());
+    for (const m of cityMarkers) if (m.getMap()) b.extend(m.getPosition());
+    return b;
+  }
+
+  window.toggleCities = async () => {
+    citiesVisible = !citiesVisible;
+    document.getElementById("btnCities").textContent =
+      citiesVisible ? "Masquer les villes" : "Afficher les villes";
+
+    if (!cityMarkers.length) await addCities();
+    for (const m of cityMarkers) m.setMap(citiesVisible ? map : null);
+  };
+
+  window.togglePoints = () => {
+    pointsVisible = !pointsVisible;
+    document.getElementById("btnPoints").textContent =
+      pointsVisible ? "Masquer les points WTD" : "Afficher les points WTD";
+
+    for (const m of pointMarkers) m.setMap(pointsVisible ? map : null);
+  };
+
+  window.fitAll = () => {
+    const b = boundsAll();
+    if (!b.isEmpty()) map.fitBounds(b);
+    else setMsg("Aucun marqueur visible.");
+  };
+
+  window.initMap = () => {
+    if (!window.google || !google.maps){
+      setMsg("Google Maps ne s’est pas chargé (clé/API/billing/referrer). F12 → Console.");
+      return;
+    }
+
+    const center = { lat: -18.8792, lng: 47.5079 };
+    map = new google.maps.Map(document.getElementById("map"), {
+      zoom: 6,
+      center,
+      mapTypeId: "roadmap",
+      gestureHandling: "greedy"
+    });
+
+    info = new google.maps.InfoWindow();
+    addPoints();
+    setMsg("Clique « Afficher les villes » pour charger les villes.");
+
+    if (pointMarkers.length){
+      const b = new google.maps.LatLngBounds();
+      for (const m of pointMarkers) b.extend(m.getPosition());
+      map.fitBounds(b);
+    }
+  };
+
+  setTimeout(() => {
+    if (!window.google || !window.google.maps){
+      setMsg("Google Maps ne s’est pas chargé. Vérifie API activée + facturation + referrer autorisé.");
+    }
+  }, 4000);
 </script>
 
+<!-- ⚠️ Remplace TA_CLE_API par ta vraie clé -->
 <script async defer src="https://maps.googleapis.com/maps/api/js?key=TA_CLE_API&callback=initMap"></script>
 
 </body>
