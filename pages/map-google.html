@@ -16,6 +16,12 @@
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
+      align-items: center;
+    }
+    .toolbar .action[disabled] {
+      opacity: .55;
+      cursor: not-allowed;
+      filter: grayscale(20%);
     }
   </style>
 </head>
@@ -34,10 +40,13 @@
 <main>
   <div class="card">
     <div class="toolbar">
-      <button class="action" onclick="toggleCities()" id="btnCities">Afficher les villes</button>
-      <button class="action" onclick="togglePoints()" id="btnPoints">Masquer les points WTD</button>
-      <button class="action" onclick="fitAll()">Zoom sur tout</button>
+      <button class="action" onclick="toggleCities()" id="btnCities" disabled>Afficher les villes</button>
+      <button class="action" onclick="togglePoints()" id="btnPoints" disabled>Masquer les points WTD</button>
+      <button class="action" onclick="fitAll()" id="btnFit" disabled>Zoom sur tout</button>
     </div>
+    <p class="muted" style="margin-top:10px">
+      ⚠️ Mets ta clé dans ce fichier : <code>TA_CLE_API</code> (ne colle jamais ta clé en public).
+    </p>
   </div>
 
   <div class="card">
@@ -50,14 +59,29 @@
   import { load, parseGps, esc } from "../assets/js/app.js";
 
   const KEY_DB = "wtd_fokontany_db";
-  let map, info;
+
+  let map = null;
+  let info = null;
+
   let cityMarkers = [];
   let pointMarkers = [];
+
   let citiesVisible = false;
   let pointsVisible = true;
 
   const msgEl = document.getElementById("msg");
+  const btnCities = document.getElementById("btnCities");
+  const btnPoints = document.getElementById("btnPoints");
+  const btnFit = document.getElementById("btnFit");
+
   const setMsg = (t) => { if (msgEl) msgEl.textContent = t || ""; };
+
+  function setButtonsEnabled(enabled){
+    for (const b of [btnCities, btnPoints, btnFit]){
+      if (!b) continue;
+      b.disabled = !enabled;
+    }
+  }
 
   function gmapLink(gps){
     const s = (gps || "").replace(/\s+/g, "").trim();
@@ -93,18 +117,30 @@
   }
 
   async function loadCities(){
-    const res = await fetch("../assets/data/villes-madagascar.json", { cache: "no-store" });
-    const data = await res.json();
-    return Array.isArray(data.cities) ? data.cities : [];
+    try{
+      const res = await fetch("../assets/data/villes-madagascar.json", { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const cities = Array.isArray(data?.cities) ? data.cities : [];
+      // Nettoyage minimal
+      return cities
+        .filter(c => c && typeof c.name === "string" && Number.isFinite(c.lat) && Number.isFinite(c.lng))
+        .map(c => ({ name: c.name, lat: Number(c.lat), lng: Number(c.lng) }));
+    } catch (e){
+      console.error("loadCities failed:", e);
+      setMsg("Impossible de charger les villes (villes-madagascar.json). Vérifie le chemin et le JSON.");
+      return [];
+    }
   }
 
-  function clear(list){
+  function clearMarkers(list){
     for (const m of list) m.setMap(null);
     list.length = 0;
   }
 
   function addPoints(){
-    clear(pointMarkers);
+    clearMarkers(pointMarkers);
+
     const pts = load(KEY_DB, [])
       .map(p => ({ ...p, ll: parseGps(p.gps) }))
       .filter(p => p.ll);
@@ -124,9 +160,9 @@
   }
 
   async function addCities(){
-    clear(cityMarkers);
-    const cs = await loadCities();
+    clearMarkers(cityMarkers);
 
+    const cs = await loadCities();
     for (const c of cs){
       const m = new google.maps.Marker({
         position: { lat: c.lat, lng: c.lng },
@@ -143,42 +179,70 @@
 
   function boundsAll(){
     const b = new google.maps.LatLngBounds();
-    for (const m of pointMarkers) if (m.getMap()) b.extend(m.getPosition());
-    for (const m of cityMarkers) if (m.getMap()) b.extend(m.getPosition());
-    return b;
+    let count = 0;
+
+    for (const m of pointMarkers){
+      if (m.getMap()){
+        b.extend(m.getPosition());
+        count++;
+      }
+    }
+    for (const m of cityMarkers){
+      if (m.getMap()){
+        b.extend(m.getPosition());
+        count++;
+      }
+    }
+    return count ? b : null;
   }
 
+  // Fonctions globales appelées par les boutons
   window.toggleCities = async () => {
-    citiesVisible = !citiesVisible;
-    document.getElementById("btnCities").textContent =
-      citiesVisible ? "Masquer les villes" : "Afficher les villes";
+    if (!map) return;
 
-    if (!cityMarkers.length) await addCities();
-    for (const m of cityMarkers) m.setMap(citiesVisible ? map : null);
+    citiesVisible = !citiesVisible;
+    btnCities.textContent = citiesVisible ? "Masquer les villes" : "Afficher les villes";
+
+    if (!cityMarkers.length){
+      await addCities();
+    } else {
+      for (const m of cityMarkers) m.setMap(citiesVisible ? map : null);
+    }
   };
 
   window.togglePoints = () => {
+    if (!map) return;
+
     pointsVisible = !pointsVisible;
-    document.getElementById("btnPoints").textContent =
-      pointsVisible ? "Masquer les points WTD" : "Afficher les points WTD";
+    btnPoints.textContent = pointsVisible ? "Masquer les points WTD" : "Afficher les points WTD";
 
     for (const m of pointMarkers) m.setMap(pointsVisible ? map : null);
   };
 
   window.fitAll = () => {
+    if (!map) return;
+
     const b = boundsAll();
-    if (!b.isEmpty()) map.fitBounds(b);
+    if (b) map.fitBounds(b);
     else setMsg("Aucun marqueur visible.");
   };
 
+  // Callback Google Maps
   window.initMap = () => {
     if (!window.google || !google.maps){
-      setMsg("Google Maps ne s’est pas chargé (clé/API/billing/referrer). F12 → Console.");
+      setMsg("Google Maps ne s’est pas chargé (clé/API/billing/referrer). Ouvre F12 → Console.");
+      return;
+    }
+
+    const mapEl = document.getElementById("map");
+    if (!mapEl){
+      setMsg("Erreur: élément #map introuvable.");
       return;
     }
 
     const center = { lat: -18.8792, lng: 47.5079 };
-    map = new google.maps.Map(document.getElementById("map"), {
+
+    map = new google.maps.Map(mapEl, {
       zoom: 6,
       center,
       mapTypeId: "roadmap",
@@ -186,9 +250,14 @@
     });
 
     info = new google.maps.InfoWindow();
+
+    // Points WTD
     addPoints();
+
+    setButtonsEnabled(true);
     setMsg("Clique « Afficher les villes » pour charger les villes.");
 
+    // Auto-zoom sur points si présents
     if (pointMarkers.length){
       const b = new google.maps.LatLngBounds();
       for (const m of pointMarkers) b.extend(m.getPosition());
@@ -196,16 +265,19 @@
     }
   };
 
+  // Message si Google Maps ne charge pas (clé/billing/referrer)
   setTimeout(() => {
     if (!window.google || !window.google.maps){
-      setMsg("Google Maps ne s’est pas chargé. Vérifie API activée + facturation + referrer autorisé.");
+      setMsg("Google Maps ne s’est pas chargé. Vérifie : API activée + facturation + referrer autorisé.");
     }
-  }, 4000);
+  }, 4500);
+
+  // Boutons désactivés au début
+  setButtonsEnabled(false);
 </script>
 
-<!-- ⚠️ Remplace TA_CLE_API par ta vraie clé -->
+<!-- ⚠️ Remplace TA_CLE_API par ta vraie clé (NE PAS publier ta clé en public) -->
 <script async defer src="https://maps.googleapis.com/maps/api/js?key=TA_CLE_API&callback=initMap"></script>
 
 </body>
 </html>
-
